@@ -7,18 +7,45 @@ let parseInt = x =>
     (-1) * (String.chop_prefix_exn(x, ~prefix="-") |> int_of_string);
   };
 
-let day1 = input =>
+let parseInput = input =>
   input
   |> String.split_on_chars(~on=[',', ' ', '\n'])
   |> List.map(~f=String.strip)
   |> List.filter(~f=x => x != "")
-  |> List.map(~f=parseInt)
-  |> List.fold_left(~init=0, ~f=(+));
+  |> List.map(~f=parseInt);
 
-let%test "day1:example1" = day1("+1, -2, +3, +1") == 3;
-let%test "day1:example2" = day1("+1, +1, +1") == 3;
-let%test "day1:example3" = day1("+1, +1, -2") == 0;
-let%test "day1:example4" = day1("-1, -2, -3") == (-6);
+let resultingFrequency = input =>
+  input |> parseInput |> List.fold_left(~init=0, ~f=(+));
+
+module Int_map = Map.M(Int);
+
+let frequencyReachedTwiceFirst = input => {
+  let initialSet = Int.Set.add(Int.Set.empty, 0);
+  let inputList = parseInput(input);
+  let rec search = (input, set, frequency) =>
+    switch (input) {
+    | [x, ...tail] =>
+      let newFrequency = frequency + x;
+      Int.Set.mem(set, newFrequency) ?
+        newFrequency :
+        search(tail, Int.Set.add(set, newFrequency), newFrequency);
+    | [] => search(inputList, set, frequency)
+    };
+  search(inputList, initialSet, 0);
+};
+
+let%test "day1:star1:example1" = resultingFrequency("+1, -2, +3, +1") == 3;
+let%test "day1:star1:example2" = resultingFrequency("+1, +1, +1") == 3;
+let%test "day1:star1:example3" = resultingFrequency("+1, +1, -2") == 0;
+let%test "day1:star1:example4" = resultingFrequency("-1, -2, -3") == (-6);
+
+let%test "day1:star2:example1" = frequencyReachedTwiceFirst("+1, -1") == 0;
+let%test "day1:star2:example1" =
+  frequencyReachedTwiceFirst("+3, +3, +4, -2, -4") == 10;
+let%test "day1:star2:example1" =
+  frequencyReachedTwiceFirst("-6, +3, +8, +5, -6") == 5;
+let%test "day1:star2:example1" =
+  frequencyReachedTwiceFirst("+7, +7, -2, -7, -4") == 14;
 
 let day1Input = "-12
 -6
@@ -996,6 +1023,7 @@ let day1Input = "-12
 -2
 -28
 -33
--71491"
+-71491";
 
-let%test "day1Input" = day1(day1Input) == 502;
+let%test "day1:star1:Input" = resultingFrequency(day1Input) == 502;
+let%test "day1:star2:Input" = frequencyReachedTwiceFirst(day1Input) == 71961;
