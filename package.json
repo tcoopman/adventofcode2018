@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@esy-ocaml/reason": "*",
+    "@opam/core": "v0.11.3",
     "@opam/dune": "*",
     "@opam/lambda-term": "*",
     "@opam/lwt": "*",
