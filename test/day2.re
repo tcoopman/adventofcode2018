@@ -1,36 +1,81 @@
 open Core;
 
 let hasExactly = (line, ~count) => {
-    let m = Char.Map.empty;
-    line
-    |> String.to_list
-    |> List.fold_left(~init=m, ~f=(map, char) => {
-        Map.update(map, char, ~f=count => switch (count) {
-            | None => 1
-            | Some(x) => x + 1
-        })
-    })
-    |> Map.data
-    |> List.exists(~f= x => x == count)
+  let m = Char.Map.empty;
+  line
+  |> String.to_list
+  |> List.fold_left(~init=m, ~f=(map, char) =>
+       Map.update(map, char, ~f=count =>
+         switch (count) {
+         | None => 1
+         | Some(x) => x + 1
+         }
+       )
+     )
+  |> Map.data
+  |> List.exists(~f=x => x == count);
 };
 
-let has2or3 = line => (hasExactly(line, ~count=2), hasExactly(line, ~count=3));
-
-let countHasExactly = (lines, ~count) => 
-    List.count(lines, ~f = line => hasExactly(line, ~count));
+let countHasExactly = (lines, ~count) =>
+  List.count(lines, ~f=line => hasExactly(line, ~count));
 
 let parseInput = input =>
   input
   |> String.split_on_chars(~on=[',', ' ', '\n'])
   |> List.map(~f=String.strip)
-  |> List.filter(~f=x => x != "")
+  |> List.filter(~f=x => x != "");
 
 let checkSum = input => {
-    let i = parseInput(input);
-    let result = countHasExactly(i, ~count=2) * countHasExactly(i, ~count=3);
-    Printf.printf ("result: %i", result);
-    result
-}
+  let i = parseInput(input);
+  let result = countHasExactly(i, ~count=2) * countHasExactly(i, ~count=3);
+  Printf.printf("result: %i", result);
+  result;
+};
+
+let oneDiff = (a, b) => {
+  let aList = String.to_list(a);
+  let bList = String.to_list(b);
+  let rec search = (a, b, result, found) =>
+    switch (a, b, found) {
+    | ([], [], false) => None
+    | ([], [], true) =>
+      result |> List.rev |> String.of_char_list |> Option.some
+    | ([cA, ...tailA], [cB, ...tailB], found) =>
+      if (cA == cB) {
+        search(tailA, tailB, [cA, ...result], found);
+      } else if (found) {
+        None;
+      } else {
+        search(tailA, tailB, result, true);
+      }
+    | _ => None
+    };
+  search(aList, bList, [], false);
+};
+
+let exactlyOneChange = (boxId, lines) => {
+  let rec search = linesLeft =>
+    switch (linesLeft) {
+    | [] => None
+    | [otherBoxId, ...tail] =>
+      switch (oneDiff(boxId, otherBoxId)) {
+      | Some(result) => Some(result)
+      | None => search(tail)
+      }
+    };
+  search(lines);
+};
+
+let commonBoxIds = input => {
+  let i = parseInput(input);
+  let resultO = List.find_map(~f=x => exactlyOneChange(x, i), i);
+  switch (resultO) {
+  | None => ""
+  | Some(x) =>
+    Printf.printf("common: %s\n", x);
+    x;
+  };
+};
 
 let%test "day2:star1:example" = {
   let testInput = "abcdef
@@ -44,8 +89,18 @@ ababab
   checkSum(testInput) == 12;
 };
 
-let%test "day2:start1:input" = {
-    let input = "rmyxgdlihczskunpfwbgqoeybv
+let%test "day2:star2:example" = {
+  let testInput = "abcde
+fghij
+klmno
+pqrst
+fguij
+axcye
+wvxyz";
+
+  commonBoxIds(testInput) == "fgij";
+};
+let input = "rmyxgdlihczskunpfwbgqoeybv
 rmyxgdlksczskunpfwbjqkeatv
 rmybgdxibczskunpfwbjqoeatv
 rmyxgdlirczskuopfwbjqzeatv
@@ -296,5 +351,7 @@ rmyxgdlihczsqunqfwdjqoeatv
 rjyxgdlyhczbkunpfwbjqoeatv
 rmyxudlihczjkunpfwbjqzeatv
 ";
-  checkSum(input) == 6370;
-}
+
+let%test "day2:star1:input" = checkSum(input) == 6370;
+let%test "day2:star2:input" =
+  commonBoxIds(input) == "rmyxgdlihczskunpfijqcebtv";
